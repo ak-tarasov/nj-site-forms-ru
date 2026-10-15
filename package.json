@@ -1,0 +1,8 @@
+{
+  "name": "nj-site-forms-ru",
+  "private": true,
+  "description": "Request forms of the Russian page ru.nj-design.pro: each request goes by mail to the Yandex mailbox; nothing is stored.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node server.js", "test": "node --test" }
+}
