@@ -6,7 +6,9 @@ import { clean, letter } from './lead.js'
 import { sendMail } from './smtp.js'
 
 const env = process.env
-const origins = (env.ALLOWED_ORIGINS ?? 'https://ru.nj-design.pro').split(',')
+// The pool-building site «Бассейны у моря» sends its requests here too; its addresses are fixed, so they live in code.
+const poolSochi = ['basseyny-u-morya.ru', 'basseynyumorya.ru', 'xn--80abnqpfiqdaz9gqc.xn--p1ai'].flatMap((d) => [`https://${d}`, `https://www.${d}`])
+const origins = (env.ALLOWED_ORIGINS ?? 'https://ru.nj-design.pro').split(',').concat(poolSochi)
 let seq = 0
 let pending = [] // { seq, kind } — counts only
 const recent = new Map() // ip → times of the last requests, against floods
@@ -48,7 +50,7 @@ const server = createServer(async (req, res) => {
       if (tooMany(ip)) return reply(res, 429, { ok: false }, origin)
       const lead = clean(raw)
       if (!lead) return reply(res, 400, { ok: false }, origin)
-      await sendMail({ host: env.SMTP_HOST ?? 'smtp.yandex.ru', user: env.SMTP_USER, pass: env.SMTP_PASS, to: env.MAIL_TO ?? env.SMTP_USER, ...letter(lead) })
+      await sendMail({ host: env.SMTP_HOST ?? 'smtp.yandex.ru', user: env.SMTP_USER, pass: env.SMTP_PASS, to: env.MAIL_TO ?? env.SMTP_USER, ...letter(lead, origin) })
       pending.push({ seq: ++seq, kind: lead.kind })
       return reply(res, 200, { ok: true }, origin)
     }
