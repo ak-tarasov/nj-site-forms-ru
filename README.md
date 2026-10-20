@@ -13,6 +13,6 @@ Run locally: `cp .env.example .env`, fill it in, `node --env-file=.env server.js
 ## Pool calculation program (pool-pz)
 
 Every path except `/lead`, `/pending`, `/health` is proxied to the private pool-pz program (python, 127.0.0.1:8766), started by `pz/pz.js` → `pz/start.sh`.
-- `start.sh` clones pool-pz, hydroscheme and the data repo pool-pz-data into `.pz/` with deploy keys from env `PZ_KEY_APP`, `PZ_KEY_SCHEME`, `PZ_KEY_DATA` (base64 of the private key). No `PZ_KEY_APP` → the program is off, forms work as before.
+- `start.sh` clones pool-pz, hydroscheme and the data repo pool-pz-data into `.pz/` (or `~/.pz` when the app folder is read-only, as on Timeweb) with deploy keys from env `PZ_KEY_APP`, `PZ_KEY_SCHEME`, `PZ_KEY_DATA` (base64 of the private key). No `PZ_KEY_APP` → the program is off, forms work as before.
 - The container is wiped on every deploy: objects, logins and the journal live in pool-pz-data; `pz/sync.sh` pushes them every 60 s and on stop.
 - System packages (Timeweb `system_dependencies`): git, openssh-client, python3-venv, libreoffice-writer (single PDF).

@@ -5,7 +5,8 @@
 set -e
 [ -n "$PZ_KEY_APP" ] || { echo 'pz: no keys, calculation program is off'; exit 0; }
 cd "$(dirname "$0")/.."
-home="$PWD/.pz"
+home="$PWD/.pz"  # the app folder is read-only on Timeweb → home folder
+mkdir -p "$home" 2>/dev/null || home="$HOME/.pz"
 mkdir -p "$home/keys"
 for k in APP SCHEME DATA; do
   eval "printf %s \"\$PZ_KEY_$k\"" | base64 -d > "$home/keys/$k"

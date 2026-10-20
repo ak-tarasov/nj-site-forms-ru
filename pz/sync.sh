@@ -1,6 +1,7 @@
 #!/bin/sh
 # Saves what the program changed (objects, stamp, users, journal) to the private repo ak-tarasov/pool-pz-data.
 data="$(dirname "$0")/../.pz/data"
+[ -d "$data/.git" ] || data="$HOME/.pz/data"
 [ -d "$data/.git" ] || exit 0
 cd "$data"
 [ -z "$(git status --porcelain)" ] && exit 0
