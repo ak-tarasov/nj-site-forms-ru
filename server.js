@@ -4,6 +4,7 @@
 import { createServer } from 'node:http'
 import { clean, letter } from './lead.js'
 import { sendMail } from './smtp.js'
+import { proxy, startProgram, stopProgram } from './pz/pz.js'
 
 const env = process.env
 // The pool-building site «Бассейны у моря» sends its requests here too; its addresses are fixed, so they live in code.
@@ -38,9 +39,12 @@ async function readBody(req) {
   return JSON.parse(body)
 }
 
+const FORMS = ['/lead', '/pending', '/health']
+
 const server = createServer(async (req, res) => {
   const origin = req.headers.origin ?? ''
   const url = new URL(req.url, 'http://x')
+  if (!FORMS.includes(url.pathname)) return proxy(req, res) // the pool calculation program
   try {
     if (req.method === 'OPTIONS') return reply(res, 204, {}, origin)
     if (url.pathname === '/lead' && req.method === 'POST') {
@@ -70,3 +74,8 @@ const server = createServer(async (req, res) => {
 
 // App Platform sends traffic to port 8080 on all interfaces.
 server.listen(Number(env.PORT ?? 8080), '0.0.0.0', () => console.log('listening', env.PORT ?? 8080))
+startProgram()
+process.on('SIGTERM', async () => {
+  await stopProgram()
+  process.exit(0)
+})
