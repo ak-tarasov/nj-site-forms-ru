@@ -4,12 +4,13 @@
 import { createServer } from 'node:http'
 import { clean, letter } from './lead.js'
 import { sendMail } from './smtp.js'
+import { anketaLetter, anketaSites } from './anketa.js'
 import { proxy, startProgram, stopProgram } from './pz/pz.js'
 
 const env = process.env
 // The pool-building site «Бассейны у моря» sends its requests here too; its addresses are fixed, so they live in code.
 const poolSochi = ['basseyny-u-morya.ru', 'basseynyumorya.ru', 'xn--80abnqpfiqdaz9gqc.xn--p1ai'].flatMap((d) => [`https://${d}`, `https://www.${d}`])
-const origins = (env.ALLOWED_ORIGINS ?? 'https://ru.nj-design.pro').split(',').concat(poolSochi)
+const origins = (env.ALLOWED_ORIGINS ?? 'https://ru.nj-design.pro').split(',').concat(poolSochi, anketaSites)
 let seq = 0
 let pending = [] // { seq, kind } — counts only
 const recent = new Map() // ip → times of the last requests, against floods
@@ -39,7 +40,7 @@ async function readBody(req) {
   return JSON.parse(body)
 }
 
-const FORMS = ['/lead', '/pending', '/health']
+const FORMS = ['/lead', '/anketa', '/pending', '/health']
 
 const server = createServer(async (req, res) => {
   const origin = req.headers.origin ?? ''
@@ -56,6 +57,16 @@ const server = createServer(async (req, res) => {
       if (!lead) return reply(res, 400, { ok: false }, origin)
       await sendMail({ host: env.SMTP_HOST ?? 'smtp.yandex.ru', user: env.SMTP_USER, pass: env.SMTP_PASS, to: env.MAIL_TO ?? env.SMTP_USER, ...letter(lead, origin) })
       pending.push({ seq: ++seq, kind: lead.kind })
+      return reply(res, 200, { ok: true }, origin)
+    }
+    if (url.pathname === '/anketa' && req.method === 'POST') {
+      const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim()
+      const raw = await readBody(req)
+      if (raw.website) return reply(res, 200, { ok: true }, origin) // spam trap filled in
+      if (tooMany(ip)) return reply(res, 429, { ok: false }, origin)
+      const mail = anketaLetter(raw)
+      if (!mail) return reply(res, 400, { ok: false }, origin)
+      await sendMail({ host: env.SMTP_HOST ?? 'smtp.yandex.ru', user: env.SMTP_USER, pass: env.SMTP_PASS, to: env.ANKETA_TO ?? 'Tarasova.coach@yandex.ru', ...mail })
       return reply(res, 200, { ok: true }, origin)
     }
     if (url.pathname === '/pending') {
